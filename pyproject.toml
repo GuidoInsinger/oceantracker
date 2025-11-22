@@ -1,0 +1,15 @@
+[project]
+name = "oceantracker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.3.5",
+    "openmeteo-requests>=1.7.4",
+    "pandas>=2.3.3",
+    "requests>=2.32.5",
+    "requests-cache>=1.2.1",
+    "rerun-sdk>=0.27.2",
+    "retry-requests>=2.0.0",
+]
