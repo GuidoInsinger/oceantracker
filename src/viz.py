@@ -1,3 +1,5 @@
+import numpy as np
+import numpy.typing as npt
 import rerun as rr
 import rerun.blueprint as rrb
 
@@ -19,11 +21,11 @@ def initialize_viewer():
     rr.send_blueprint(blueprint)
 
 
-def log_point(lat: float, lon: float):
+def log_point(ll_arr: npt.NDArray[np.float64]):
     rr.log(
         "points",
         rr.GeoPoints(
-            lat_lon=[[lat, lon]],
+            lat_lon=ll_arr,
             radii=rr.Radius.ui_points(5.0),
         ),
     )

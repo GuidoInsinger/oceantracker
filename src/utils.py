@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-def vector_to_latlon_delta(vector: npt.NDArray[np.floating], lat: float):
+def vector_to_latlon_delta(xy_vector: npt.NDArray[np.float64], lat: float):
     """
       Convert a vector to delta latitude and delta longitude.
 
@@ -32,19 +32,15 @@ def vector_to_latlon_delta(vector: npt.NDArray[np.floating], lat: float):
     EARTH_RADIUS = 6371000  # meters
 
     # Convert to meters if needed
-    x_north_m = vector[0]
-    y_east_m = vector[1]
 
     # Convert north component to delta latitude
     # 1 degree latitude = 111,320 meters (approximately constant)
-    meters_per_degree_lat = np.pi * EARTH_RADIUS / 180
-    delta_lat = x_north_m / meters_per_degree_lat
+    scale = np.array(
+        [
+            np.pi * EARTH_RADIUS / 180,
+            (np.pi * EARTH_RADIUS / 180) * np.cos(np.radians(lat)),
+        ]
+    )
 
-    # Convert west component to delta longitude
-    # 1 degree longitude varies with latitude: 111,320 * cos(lat) meters
-    meters_per_degree_lon = (np.pi * EARTH_RADIUS / 180) * np.cos(np.radians(lat))
-
-    # West is negative longitude change
-    delta_lon = y_east_m / meters_per_degree_lon
-
-    return delta_lat, delta_lon
+    delta_ll = xy_vector / scale
+    return delta_ll

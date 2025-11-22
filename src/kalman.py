@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-class EKF:
+class KalmanFilter:
     def __init__(
         self,
         cov0: Annotated[npt.NDArray[np.float64], Literal["N", "N"]],

@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 import openmeteo_requests  # type: ignore
 import requests_cache
 from retry_requests import retry  # type: ignore
@@ -14,29 +15,21 @@ openmeteo = openmeteo_requests.Client(session=retry_session)  # type: ignore
 url = "https://marine-api.open-meteo.com/v1/marine"
 
 
-def new_ocean(lat: float, lon: float):
+def new_ocean(ll_arr: npt.NDArray[np.float64]):
     params: dict[str, str | float | list[str]] = {
-        "latitude": lat,
-        "longitude": lon,
+        "latitude": ll_arr[0],
+        "longitude": ll_arr[1],
         "current": ["ocean_current_velocity", "ocean_current_direction"],
         "wind_speed_unit": "ms",
     }
     responses = openmeteo.weather_api(url, params=params)  # type: ignore
 
-    # Process first location. Add a for-loop for multiple locations or weather models
     response = responses[0]
-    # print(f"Coordinates: {response.Latitude()}°N {response.Longitude()}°E")
-    # print(f"Elevation: {response.Elevation()} m asl")
-    # print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
-
-    # Process current data. The order of variables needs to be the same as requested.
     current = response.Current()
+
     current_ocean_current_velocity = current.Variables(0).Value()  # type: ignore
     current_ocean_current_direction = current.Variables(1).Value()  # type: ignore
 
-    # print(f"\nCurrent time: {current.Time()}")  # type: ignore
-    # print(f"Current ocean_current_velocity: {current_ocean_current_velocity}")
-    # print(f"Current ocean_current_direction: {current_ocean_current_direction}")
     angle_radian = np.deg2rad(current_ocean_current_direction)
 
     velocity_vec = current_ocean_current_velocity * np.array(
