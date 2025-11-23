@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeaSee - Save Lives and Budget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #0a1929;
+            overflow-x: hidden;
+            background: linear-gradient(180deg, #f8fafc 0%, #e0f2fe 100%);
+        }
+
+        /* Animated sea background */
+        .sea-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, 
+                #f8fafc 0%,
+                #e0f2fe 20%, 
+                #bae6fd 50%, 
+                #7dd3fc 75%, 
+                #0ea5e9 100%);
+            z-index: -2;
+        }
+
+        .waves {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            z-index: -1;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M0,60 Q150,100 300,60 T600,60 T900,60 T1200,60 L1200,120 L0,120 Z" fill="%23ffffff" fill-opacity="0.15"/></svg>');
+            background-size: 600px 120px;
+            animation: wave 15s linear infinite;
+        }
+
+        .wave:nth-child(2) {
+            animation: wave 20s linear infinite reverse;
+            opacity: 0.5;
+        }
+
+        .wave:nth-child(3) {
+            animation: wave 25s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        nav {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        nav a {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        nav a:hover {
+            color: #0a1929;
+        }
+
+        nav a.login-link {
+            border: 2px solid #e2e8f0;
+            padding: 8px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        nav a.login-link:hover {
+            border-color: #0ea5e9;
+            background: #f8fafc;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 12px;
+            z-index: 1000;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 12px 16px;
+            color: #64748b;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .dropdown-content a:hover {
+            background: #f1f5f9;
+            color: #0a1929;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 100px 24px 40px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 80px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #0a1929 0%, #1e3a5f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #64748b;
+            margin-bottom: 48px;
+            max-width: 550px;
+            line-height: 1.6;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #0a1929;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            border-color: #0ea5e9;
+            background: #f8fafc;
+        }
+
+        /* Drone Hero Image */
+        .drone-hero {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 1000px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15);
+        }
+
+        .drone-hero img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Partners */
+        .partners {
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .partner-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 80px;
+            flex-wrap: wrap;
+            margin-top: 0;
+        }
+
+
+        /* Feature Sections */
+        .feature-section {
+            padding: 60px 64px;
+            display: flex;
+            align-items: center;
+            gap: 100px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .feature-section:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-content h2 {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: #0a1929;
+            letter-spacing: -1px;
+        }
+
+        .feature-content p {
+            font-size: 20px;
+            color: #64748b;
+            line-height: 1.7;
+            margin-bottom: 40px;
+        }
+
+        .feature-image {
+            flex: 1;
+            position: relative;
+        }
+
+        .feature-image svg {
+            width: 100%;
+            max-width: 500px;
+            filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.1));
+        }
+
+        /* Testimonial Section */
+        .testimonial-section {
+            padding: 60px 64px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 120px 64px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .pricing-header h2 {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: #0a1929;
+            letter-spacing: -1px;
+        }
+
+        .pricing-header p {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            border-color: #e0f2fe;
+        }
+
+        .pricing-card.featured {
+            border-color: #0ea5e9;
+            position: relative;
+        }
+
+        .pricing-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .pricing-card-header {
+            margin-bottom: 32px;
+        }
+
+        .pricing-card h3 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0a1929;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card .price {
+            font-size: 48px;
+            font-weight: 800;
+            color: #0a1929;
+            margin-bottom: 4px;
+        }
+
+        .pricing-card .price-period {
+            font-size: 16px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .pricing-card .cta-button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 32px 0;
+            border: none;
+        }
+
+        .pricing-card .cta-button.primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+        }
+
+        .pricing-card .cta-button.secondary {
+            background: #f1f5f9;
+            color: #0a1929;
+        }
+
+        .pricing-card .cta-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .pricing-features li {
+            padding: 16px 0;
+            color: #0a1929;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .testimonial {
+            background: white;
+            border-radius: 24px;
+            padding: 60px;
+            display: flex;
+            gap: 60px;
+            align-items: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+        }
+
+        .testimonial-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 4px solid #e0f2fe;
+        }
+
+        .testimonial-content {
+            flex: 1;
+        }
+
+        .testimonial-text {
+            font-size: 20px;
+            color: #475569;
+            line-height: 1.8;
+            font-style: italic;
+            margin-bottom: 24px;
+        }
+
+        .testimonial-author {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0a1929;
+            margin-bottom: 4px;
+        }
+
+        .testimonial-role {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 32px 64px;
+            border-top: 1px solid rgba(226, 232, 240, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .social-links a:hover {
+            background: #0ea5e9;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 48px;
+            }
+
+            .feature-section {
+                flex-direction: column !important;
+                padding: 60px 24px;
+            }
+
+            .testimonial {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            header, footer {
+                padding: 20px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sea Background -->
+    <div class="sea-background"></div>
+    <div class="waves">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">SeaSee</div>
+        <nav>
+            <div class="dropdown">
+                <a href="#usecases">Use cases</a>
+                <div class="dropdown-content">
+                    <a href="#surveillance">Surveillance</a>
+                    <a href="#oil-platforms">Oil platforms</a>
+                    <a href="#wind-farms">Wind farms</a>
+                </div>
+            </div>
+            <a href="page2.html">Pricing</a>
+            <a href="#" class="login-link" onclick="window.location.href='#'; return false;">Login</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <h1>Save lives,<br>and budget</h1>
+        <p class="subtitle">Get eyes in the sky, to support your search and rescue operations</p>
+        <div class="cta-buttons">
+            <a href="#" class="btn btn-primary" onclick="alert('Redirecting to onboarding...'); return false;">Get a demo</a>
+            <a href="#" class="btn btn-secondary" onclick="alert('Redirecting to onboarding...'); return false;">Login</a>
+        </div>
+    </section>
+
+    <!-- Partners -->
+    <section class="partners">
+        <div class="partner-logos">
+            <!-- SNSM Logo -->
+            <img src="snsm.png" alt="SNSM" style="height: 60px; width: auto; opacity: 0.7; transition: all 0.3s;" onmouseover="this.style.opacity='1'; this.style.transform='scale(1.05)'" onmouseout="this.style.opacity='0.7'; this.style.transform='scale(1)'">
+            
+            <!-- US Coast Guard Logo -->
+            <img src="US Coast Guard Flag.svg" alt="US Coast Guard" style="height: 60px; width: auto; opacity: 0.7; transition: all 0.3s;" onmouseover="this.style.opacity='1'; this.style.transform='scale(1.05)'" onmouseout="this.style.opacity='0.7'; this.style.transform='scale(1)'">
+        </div>
+    </section>
+
+    <!-- Feature: Autonomous Drones -->
+    <section class="feature-section">
+        <div class="feature-content">
+            <h2>Autonomous drones</h2>
+            <p>Install a launchpad on the coast. Drones will take off automatically without needing to pilot them. We'll manage that part.</p>
+        </div>
+        <div class="feature-image">
+            <svg viewBox="0 0 400 400" style="width: 100%;">
+                <!-- Launchpad base -->
+                <rect x="100" y="280" width="200" height="15" rx="3" fill="#334155"/>
+                <rect x="90" y="295" width="220" height="8" rx="2" fill="#475569"/>
+                
+                <!-- Platform -->
+                <ellipse cx="200" cy="280" rx="90" ry="15" fill="#64748b"/>
+                <circle cx="200" cy="280" r="70" fill="#475569"/>
+                <circle cx="200" cy="280" r="50" fill="#334155"/>
+                
+                <!-- Landing markers -->
+                <circle cx="200" cy="280" r="5" fill="#fbbf24"/>
+                <circle cx="170" cy="280" r="3" fill="#fbbf24" opacity="0.6"/>
+                <circle cx="230" cy="280" r="3" fill="#fbbf24" opacity="0.6"/>
+                <circle cx="200" cy="250" r="3" fill="#fbbf24" opacity="0.6"/>
+                <circle cx="200" cy="310" r="3" fill="#fbbf24" opacity="0.6"/>
+                
+                <!-- Drone hovering above -->
+                <g transform="translate(200, 150)">
+                    <ellipse cx="0" cy="0" rx="40" ry="20" fill="#e2e8f0"/>
+                    <rect x="-25" y="-10" width="50" height="20" rx="3" fill="#ffffff"/>
+                    
+                    <!-- Arms -->
+                    <line x1="0" y1="0" x2="-40" y2="-25" stroke="#cbd5e1" stroke-width="5"/>
+                    <line x1="0" y1="0" x2="40" y2="-25" stroke="#cbd5e1" stroke-width="5"/>
+                    <line x1="0" y1="0" x2="-40" y2="25" stroke="#cbd5e1" stroke-width="5"/>
+                    <line x1="0" y1="0" x2="40" y2="25" stroke="#cbd5e1" stroke-width="5"/>
+                    
+                    <!-- Propellers -->
+                    <circle cx="-40" cy="-25" r="18" fill="#cbd5e1" opacity="0.4"/>
+                    <circle cx="40" cy="-25" r="18" fill="#cbd5e1" opacity="0.4"/>
+                    <circle cx="-40" cy="25" r="18" fill="#cbd5e1" opacity="0.4"/>
+                    <circle cx="40" cy="25" r="18" fill="#cbd5e1" opacity="0.4"/>
+                </g>
+                
+                <!-- Take-off indicator -->
+                <path d="M 200 220 L 195 240 M 200 220 L 205 240" stroke="#3b82f6" stroke-width="2" opacity="0.5"/>
+                <path d="M 200 200 L 195 220 M 200 200 L 205 220" stroke="#3b82f6" stroke-width="2" opacity="0.4"/>
+                <path d="M 200 180 L 195 200 M 200 180 L 205 200" stroke="#3b82f6" stroke-width="2" opacity="0.3"/>
+                
+                <!-- Ground -->
+                <ellipse cx="200" cy="310" rx="100" ry="10" fill="#94a3b8" opacity="0.3"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Feature: Fast Response -->
+    <section class="feature-section">
+        <div class="feature-content">
+            <h2>Get 2x faster on scene</h2>
+            <p>Drones are flying in 15 mins per hour allowing you to find your target before arriving on scene.</p>
+            <a href="#" class="btn btn-primary">Get a demo</a>
+        </div>
+        <div class="feature-image">
+            <svg viewBox="0 0 400 400" style="width: 100%;">
+                <defs>
+                    <radialGradient id="thermal" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                    </radialGradient>
+                </defs>
+                
+                <ellipse cx="200" cy="150" rx="50" ry="25" fill="#f1f5f9"/>
+                <rect x="175" y="135" width="50" height="30" rx="3" fill="#ffffff"/>
+                <line x1="200" y1="150" x2="130" y2="110" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="150" x2="270" y2="110" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="150" x2="130" y2="190" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="150" x2="270" y2="190" stroke="#cbd5e1" stroke-width="6"/>
+                <circle cx="130" cy="110" r="25" fill="#e2e8f0"/>
+                <circle cx="270" cy="110" r="25" fill="#e2e8f0"/>
+                <circle cx="130" cy="190" r="25" fill="#e2e8f0"/>
+                <circle cx="270" cy="190" r="25" fill="#e2e8f0"/>
+                <rect x="185" y="140" width="30" height="20" rx="2" fill="url(#thermal)"/>
+                <circle cx="200" cy="320" r="30" fill="url(#thermal)" opacity="0.8"/>
+                <ellipse cx="200" cy="340" rx="15" ry="25" fill="#ef4444" opacity="0.6"/>
+                <line x1="200" y1="170" x2="200" y2="290" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5" opacity="0.4"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Feature: Predict Location -->
+    <section class="feature-section">
+        <div class="feature-content">
+            <h2>Predict location</h2>
+            <p>Leverage streams and wind data to predict position of your target and fix evolution over time.</p>
+        </div>
+        <div class="feature-image">
+            <svg viewBox="0 0 400 400">
+                <defs>
+                    <linearGradient id="current" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.6" />
+                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.3" />
+                    </linearGradient>
+                </defs>
+                <path d="M 50 200 Q 100 150, 150 180 T 250 160 T 350 200" stroke="url(#current)" stroke-width="8" fill="none" opacity="0.6" stroke-linecap="round"/>
+                <path d="M 30 250 Q 80 220, 140 240 T 260 220 T 370 250" stroke="url(#current)" stroke-width="8" fill="none" opacity="0.5" stroke-linecap="round"/>
+                <path d="M 60 300 Q 120 270, 180 290 T 280 280 T 360 300" stroke="url(#current)" stroke-width="8" fill="none" opacity="0.4" stroke-linecap="round"/>
+                <circle cx="150" cy="180" r="50" stroke="#3b82f6" stroke-width="3" fill="none" opacity="0.3"/>
+                <circle cx="150" cy="180" r="35" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.4"/>
+                <circle cx="150" cy="180" r="20" stroke="#3b82f6" stroke-width="2" fill="none" opacity="0.5"/>
+                <circle cx="280" cy="260" r="40" stroke="#06b6d4" stroke-width="3" fill="none" opacity="0.3"/>
+                <circle cx="280" cy="260" r="28" stroke="#06b6d4" stroke-width="2" fill="none" opacity="0.4"/>
+                <circle cx="320" cy="200" r="8" fill="#ef4444" opacity="0.8"/>
+                <circle cx="320" cy="200" r="15" stroke="#ef4444" stroke-width="2" fill="none" opacity="0.5"/>
+                <circle cx="320" cy="200" r="22" stroke="#ef4444" stroke-width="1" fill="none" opacity="0.3"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Feature: Drop Life Jackets -->
+    <section class="feature-section">
+        <div class="feature-content">
+            <h2>Drop life jackets</h2>
+            <p>Drop life jackets to your target to boost their survival chances while you're on the way.</p>
+        </div>
+        <div class="feature-image">
+            <svg viewBox="0 0 400 400" style="width: 100%;">
+                <ellipse cx="200" cy="80" rx="50" ry="25" fill="#f1f5f9"/>
+                <rect x="175" y="65" width="50" height="30" rx="3" fill="#ffffff"/>
+                <line x1="200" y1="80" x2="150" y2="50" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="80" x2="250" y2="50" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="80" x2="150" y2="110" stroke="#cbd5e1" stroke-width="6"/>
+                <line x1="200" y1="80" x2="250" y2="110" stroke="#cbd5e1" stroke-width="6"/>
+                <circle cx="150" cy="50" r="20" fill="#e2e8f0"/>
+                <circle cx="250" cy="50" r="20" fill="#e2e8f0"/>
+                <circle cx="150" cy="110" r="20" fill="#e2e8f0"/>
+                <circle cx="250" cy="110" r="20" fill="#e2e8f0"/>
+                <line x1="200" y1="110" x2="200" y2="180" stroke="#94a3b8" stroke-width="3" stroke-dasharray="5,5"/>
+                <g transform="translate(200, 220)">
+                    <ellipse cx="0" cy="0" rx="30" ry="35" fill="#ef4444"/>
+                    <ellipse cx="0" cy="-5" rx="25" ry="30" fill="#f97316"/>
+                    <circle cx="0" cy="-10" r="12" fill="#ffffff" opacity="0.3"/>
+                    <rect x="-8" y="15" width="16" height="8" rx="2" fill="#fbbf24"/>
+                </g>
+                <line x1="200" y1="200" x2="195" y2="170" stroke="#cbd5e1" stroke-width="2" opacity="0.4"/>
+                <line x1="200" y1="210" x2="205" y2="180" stroke="#cbd5e1" stroke-width="2" opacity="0.4"/>
+                <ellipse cx="200" cy="350" rx="80" ry="15" fill="#3b82f6" opacity="0.3"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Testimonial Section -->
+    <section class="testimonial-section">
+        <div class="testimonial">
+            <img src="SNSM testimonial.png" alt="SNSM Head" class="testimonial-image">
+            <div class="testimonial-content">
+                <p class="testimonial-text">"We tried quadcopter drones launched from boat but that wasn't successful to land afterwards and was struggling within strong winds. We would love a better solution as our station covers 110 km of coast over 12 miles of deep sea."</p>
+                <div class="testimonial-author">Jean-Pierre Martin</div>
+                <div class="testimonial-role">Head of SNSM Capbreton, France</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <div style="font-weight: 800; margin-right: 16px; font-size: 20px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">SeaSee</div>
+            <div class="dropdown">
+                <a href="#usecases">Use cases</a>
+                <div class="dropdown-content">
+                    <a href="#surveillance">Surveillance</a>
+                    <a href="#oil-platforms">Oil platforms</a>
+                    <a href="#wind-farms">Wind farms</a>
+                </div>
+            </div>
+            <a href="page2.html">Pricing</a>
+            <a href="#" onclick="alert('Redirecting to onboarding...'); return false;">Login</a>
+        </div>
+        <div class="social-links">
+            <a href="#" title="Twitter">𝕏</a>
+            <a href="#" title="LinkedIn">in</a>
+            <a href="#" title="Instagram">⚡</a>
+        </div>
+    </footer>
+</body>
+</html>

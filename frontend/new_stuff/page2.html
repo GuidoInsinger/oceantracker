@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - SeaSee</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #0a1929;
+            overflow-x: hidden;
+            background: linear-gradient(180deg, #f8fafc 0%, #e0f2fe 100%);
+        }
+
+        /* Animated sea background */
+        .sea-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, 
+                #f8fafc 0%,
+                #e0f2fe 20%, 
+                #bae6fd 50%, 
+                #7dd3fc 75%, 
+                #0ea5e9 100%);
+            z-index: -2;
+        }
+
+        .waves {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            z-index: -1;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M0,60 Q150,100 300,60 T600,60 T900,60 T1200,60 L1200,120 L0,120 Z" fill="%23ffffff" fill-opacity="0.15"/></svg>');
+            background-size: 600px 120px;
+            animation: wave 15s linear infinite;
+        }
+
+        .wave:nth-child(2) {
+            animation: wave 20s linear infinite reverse;
+            opacity: 0.5;
+        }
+
+        .wave:nth-child(3) {
+            animation: wave 25s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+        }
+
+        nav {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        nav a {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        nav a:hover {
+            color: #0a1929;
+        }
+
+        nav a.login-link {
+            border: 2px solid #e2e8f0;
+            padding: 8px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        nav a.login-link:hover {
+            border-color: #0ea5e9;
+            background: #f8fafc;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 12px;
+            z-index: 1000;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 12px 16px;
+            color: #64748b;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .dropdown-content a:hover {
+            background: #f1f5f9;
+            color: #0a1929;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 120px 64px;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 200px);
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .pricing-header h1 {
+            font-size: 72px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #0a1929 0%, #1e3a5f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+        }
+
+        .pricing-header p {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            border-color: #e0f2fe;
+        }
+
+        .pricing-card.featured {
+            border-color: #0ea5e9;
+            position: relative;
+        }
+
+        .pricing-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .pricing-card-header {
+            margin-bottom: 32px;
+        }
+
+        .pricing-card h3 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0a1929;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card .price {
+            font-size: 48px;
+            font-weight: 800;
+            color: #0a1929;
+            margin-bottom: 4px;
+        }
+
+        .pricing-card .price-period {
+            font-size: 16px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .pricing-card .cta-button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 32px 0;
+            border: none;
+        }
+
+        .pricing-card .cta-button.primary {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+        }
+
+        .pricing-card .cta-button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.4);
+        }
+
+        .pricing-card .cta-button.secondary {
+            background: white;
+            color: #0a1929;
+            border: 2px solid #e2e8f0;
+        }
+
+        .pricing-card .cta-button.secondary:hover {
+            transform: translateY(-2px);
+            border-color: #0ea5e9;
+            background: #f8fafc;
+        }
+
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .pricing-features li {
+            padding: 16px 0;
+            color: #0a1929;
+            font-size: 16px;
+            font-weight: 600;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 32px 64px;
+            border-top: 1px solid rgba(226, 232, 240, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 80px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: #64748b;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .social-links a:hover {
+            background: #0ea5e9;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .pricing-header h1 {
+                font-size: 48px;
+            }
+
+            .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+
+            header, footer {
+                padding: 20px 24px;
+            }
+
+            .pricing-section {
+                padding: 60px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sea Background -->
+    <div class="sea-background"></div>
+    <div class="waves">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <a href="page1.html" class="logo">SeaSee</a>
+        <nav>
+            <div class="dropdown">
+                <a href="page1.html#usecases">Use cases</a>
+                <div class="dropdown-content">
+                    <a href="page1.html#surveillance">Surveillance</a>
+                    <a href="page1.html#oil-platforms">Oil platforms</a>
+                    <a href="page1.html#wind-farms">Wind farms</a>
+                </div>
+            </div>
+            <a href="page2.html">Pricing</a>
+            <a href="#" class="login-link" onclick="alert('Redirecting to login...'); return false;">Login</a>
+        </nav>
+    </header>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section">
+        <div class="pricing-header">
+            <h1>Simple, transparent pricing</h1>
+            <p>Choose the plan that fits your needs</p>
+        </div>
+        <div class="pricing-cards">
+            <!-- Access Plan -->
+            <div class="pricing-card">
+                <div class="pricing-card-header">
+                    <h3>Access</h3>
+                    <div class="price">$25k</div>
+                    <div class="price-period">per year per drone</div>
+                </div>
+                <a href="#" class="cta-button secondary" onclick="alert('Redirecting to sign up...'); return false;">Get started</a>
+                <ul class="pricing-features">
+                    <li>Drone</li>
+                    <li>Launchpad</li>
+                    <li>SAR coordination</li>
+                    <li>Courants prediction</li>
+                </ul>
+            </div>
+
+            <!-- Autonomous Plan -->
+            <div class="pricing-card featured">
+                <div class="pricing-card-header">
+                    <h3>Autonomous</h3>
+                    <div class="price">$35k</div>
+                    <div class="price-period">per year per drone</div>
+                </div>
+                <a href="#" class="cta-button primary" onclick="alert('Redirecting to sign up...'); return false;">Get started</a>
+                <ul class="pricing-features">
+                    <li>Piloted Drone</li>
+                    <li>Launchpad</li>
+                    <li>SAR coordination</li>
+                    <li>Courants prediction</li>
+                    <li>Maintenance</li>
+                </ul>
+            </div>
+
+            <!-- Fleet Plan -->
+            <div class="pricing-card">
+                <div class="pricing-card-header">
+                    <h3>Fleet</h3>
+                    <div class="price">Custom</div>
+                    <div class="price-period">Contact for pricing</div>
+                </div>
+                <a href="#" class="cta-button secondary" onclick="alert('Redirecting to contact...'); return false;">Contact sales</a>
+                <ul class="pricing-features">
+                    <li>Dedicated team</li>
+                    <li>Custom drones</li>
+                    <li>Custom system</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <div style="font-weight: 800; margin-right: 16px; font-size: 20px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">SeaSee</div>
+            <div class="dropdown">
+                <a href="page1.html#usecases">Use cases</a>
+                <div class="dropdown-content">
+                    <a href="page1.html#surveillance">Surveillance</a>
+                    <a href="page1.html#oil-platforms">Oil platforms</a>
+                    <a href="page1.html#wind-farms">Wind farms</a>
+                </div>
+            </div>
+            <a href="page2.html">Pricing</a>
+            <a href="#" onclick="alert('Redirecting to onboarding...'); return false;">Login</a>
+        </div>
+        <div class="social-links">
+            <a href="#" title="Twitter">𝕏</a>
+            <a href="#" title="LinkedIn">in</a>
+            <a href="#" title="Instagram">⚡</a>
+        </div>
+    </footer>
+</body>
+</html>

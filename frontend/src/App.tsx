@@ -140,9 +140,9 @@ const MapClickHandler = ({
     } finally {
       setIsSimulating(false);
     }
-  };
+};
 
-  const handleMapClick = (latlng: [number, number]) => {
+const handleMapClick = (latlng: [number, number]) => {
   if (isAddingPosition && !isDrawing) {
     const newPositions = [...lastKnownPositions, latlng];
     setLastKnownPositions(newPositions);
