@@ -1,0 +1,729 @@
+import { Crosshair, Mic, MicOff, Plus, Send, Settings, Ship, User, Video } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+const SeahoakConsole = () => {
+ // Onboarding state
+ const [currentScreen, setCurrentScreen] = useState('onboarding');
+ const [missionType, setMissionType] = useState(null);
+
+ // Mission console state
+ const [messages, setMessages] = useState([
+ { id: 1, type: 'system', text: 'Mission initialized', time: '14:23' },
+ { id: 2, type: 'pilot', text: 'Drone en route to search area', time: '14:24' },
+ { id: 3, type: 'operator', text: 'Copy that. Visibility conditions?', time: '14:24' },
+ { id: 4, type: 'pilot', text: 'Clear skies, 15 km visibility', time: '14:25' },
+ { id: 5, type: 'system', text: 'Drone on station', time: '14:27' }
+ ]);
+
+ const [newMessage, setNewMessage] = useState('');
+ const [isMuted, setIsMuted] = useState(true);
+ const [battery, setBattery] = useState(87);
+ const [flightTime, setFlightTime] = useState(34);
+ const [isDrawing, setIsDrawing] = useState(false);
+ const [drawingPoints, setDrawingPoints] = useState([]);
+ const [areas, setAreas] = useState([]);
+ const [isMouseDown, setIsMouseDown] = useState(false);
+ const [lastKnownPositions, setLastKnownPositions] = useState([]);
+ const [isAddingPosition, setIsAddingPosition] = useState(true);
+
+ useEffect(() => {
+ const interval = setInterval(() => {
+ setBattery(prev => Math.max(20, prev - 0.5));
+ setFlightTime(prev => Math.max(5, prev - 0.5));
+ }, 10000);
+ return () => clearInterval(interval);
+ }, []);
+
+ const handleSendMessage = (text) => {
+ if (text.trim()) { 
+ setMessages([...messages, {
+ id: messages.length + 1,
+ type: 'operator',
+ text: text,
+ time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+ }]);
+ setNewMessage('');
+ }
+ };
+
+ const handleMapClick = (e) => {
+ if (isAddingPosition && !isDrawing) {
+ const rect = e.currentTarget.getBoundingClientRect();
+ const x = ((e.clientX - rect.left) / rect.width) * 100;
+ const y = ((e.clientY - rect.top) / rect.height) * 100;
+ setLastKnownPositions([...lastKnownPositions, { x, y }]);
+ setIsAddingPosition(false);
+ return;
+ }
+
+ if (!isDrawing) return;
+ const rect = e.currentTarget.getBoundingClientRect();
+ const x = ((e.clientX - rect.left) / rect.width) * 100;
+ const y = ((e.clientY - rect.top) / rect.height) * 100;
+ setDrawingPoints([...drawingPoints, { x, y }]);
+ };
+
+ const handleMouseDown = (e) => {
+ if (isAddingPosition && !isDrawing) {
+ handleMapClick(e);
+ return;
+ }
+ if (!isDrawing) return;
+ setIsMouseDown(true);
+ handleMapClick(e);
+ };
+
+ const handleMouseMove = (e) => {
+ if (!isDrawing || !isMouseDown) return;
+ const rect = e.currentTarget.getBoundingClientRect();
+ const x = ((e.clientX - rect.left) / rect.width) * 100;
+ const y = ((e.clientY - rect.top) / rect.height) * 100;
+ const lastPoint = drawingPoints[drawingPoints.length - 1];
+ if (!lastPoint || Math.hypot(x - lastPoint.x, y - lastPoint.y) > 1) {
+ setDrawingPoints([...drawingPoints, { x, y }]);
+ }
+ };
+
+ const handleMouseUp = () => {
+ if (isMouseDown) setIsMouseDown(false);
+ };
+
+ const handleDrawAreaClick = () => {
+ if (isDrawing) {
+ setDrawingPoints([]);
+ setAreas([]);
+ setIsDrawing(false);
+ setIsMouseDown(false);
+ } else {
+ setIsDrawing(true);
+ setDrawingPoints([]);
+ }
+ };
+
+ const handleMissionSelect = (type) => {
+ setMissionType(type);
+ setCurrentScreen('console');
+ setIsAddingPosition(true);
+ };
+
+ // Onboarding Screen
+ if (currentScreen === 'onboarding') {
+ return (
+ <div style={styles.container}>
+ <div style={styles.onboardingWrapper}>
+ <h1 style={styles.onboardingTitle}>Rescue</h1>
+ <div style={styles.missionCards}>
+ <button
+ style={styles.missionCard}
+ onClick={() => handleMissionSelect('boat')}
+ >
+ <Ship size={64} strokeWidth={1.5} color="#7dd3fc" />
+ <span style={styles.missionCardLabel}>Boat</span>
+ </button>
+ <button
+ style={styles.missionCard}
+ onClick={() => handleMissionSelect('person')}
+ >
+ <User size={64} strokeWidth={1.5} color="#7dd3fc" />
+ <span style={styles.missionCardLabel}>Person</span>
+ </button>
+ </div>
+ </div>
+ </div>
+ );
+ }
+
+ // Main Console Screen
+ return (
+ <div style={styles.container}>
+ {/* Top Bar */}
+ <div style={styles.topBar}>
+ <button style={styles.settingsBtn}>
+ <Settings size={20} />
+ </button>
+ <div style={styles.topBarRight}>
+ <button style={{...styles.actionBtn, ...styles.abortBtn}}>
+ Abort
+ </button>
+ <button style={{...styles.actionBtn, ...styles.completedBtn}}>
+ Mission Completed
+ </button>
+ </div>
+ </div>
+
+ <div style={styles.mainContent}>
+ {/* Left Panel - Map */}
+ <div style={styles.mapPanel}>
+ <div style={styles.droneStatus}>
+ <div style={styles.statusRow}>
+ <span style={styles.statusLabel}>Battery</span>
+ <span style={{...styles.statusValue, color: battery < 30 ? '#ff4757' : '#00f2ea'}}>
+ {battery.toFixed(0)}%
+ </span>
+ </div>
+ <div style={styles.statusRow}>
+ <span style={styles.statusLabel}>Flight time</span>
+ <span style={{...styles.statusValue, color: flightTime < 10 ? '#ff4757' : '#00f2ea'}}>
+ {flightTime.toFixed(0)} min
+ </span>
+ </div>
+ </div>
+
+ {/* Map Content */}
+ <div
+ style={{
+ ...styles.mapContent,
+ cursor: isDrawing ? 'crosshair' : isAddingPosition ? 'crosshair' : 'default'
+ }}
+ onMouseDown={handleMouseDown}
+ onMouseMove={handleMouseMove}
+ onMouseUp={handleMouseUp}
+ onMouseLeave={handleMouseUp}
+ >
+ {/* Last known positions (red crosses) */}
+ {lastKnownPositions.map((pos, idx) => (
+ <div
+ key={idx}
+ style={{
+ position: 'absolute',
+ left: `${pos.x}%`,
+ top: `${pos.y}%`,
+ transform: 'translate(-50%, -50%)',
+ zIndex: 5
+ }}
+ >
+ <svg width="24" height="24" viewBox="0 0 24 24">
+ <line x1="4" y1="4" x2="20" y2="20" stroke="#ff4757" strokeWidth="3" strokeLinecap="round"/>
+ <line x1="20" y1="4" x2="4" y2="20" stroke="#ff4757" strokeWidth="3" strokeLinecap="round"/>
+ </svg>
+ <div style={styles.positionLabel}>LKP {idx + 1}</div>
+ </div>
+ ))}
+
+ {/* Render completed areas */}
+ {areas.map((area, idx) => (
+ <svg key={idx} style={styles.areaSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
+ <polygon
+ points={area.map(p => `${p.x},${p.y}`).join(' ')}
+ style={styles.areaPolygon}
+ />
+ </svg>
+ ))}
+
+ {/* Render current drawing */}
+ {drawingPoints.length > 0 && (
+ <svg style={styles.areaSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
+ {drawingPoints.length > 2 && (
+ <polygon
+ points={drawingPoints.map(p => `${p.x},${p.y}`).join(' ')}
+ fill="rgba(255, 159, 67, 0.15)"
+ stroke="none"
+ />
+ )}
+ <path
+ d={`M ${drawingPoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
+ style={styles.drawingLine}
+ />
+ {drawingPoints.length > 0 && (
+ <circle cx={drawingPoints[0].x} cy={drawingPoints[0].y} r="1" fill="#2ecc71" stroke="#fff" strokeWidth="0.25"/>
+ )}
+ {drawingPoints.length > 1 && (
+ <circle cx={drawingPoints[drawingPoints.length - 1].x} cy={drawingPoints[drawingPoints.length - 1].y} r="0.8" fill="#ff9f43" stroke="#fff" strokeWidth="0.25"/>
+ )}
+ </svg>
+ )}
+
+ {/* Instruction overlay when adding position */}
+ {isAddingPosition && lastKnownPositions.length === 0 && (
+ <div style={styles.instructionOverlay}>
+ <div style={styles.instructionBox}>
+ Click on map to set last known position
+ </div>
+ </div>
+ )}
+ </div>
+
+ {/* Map controls */}
+ <div style={styles.mapControls}>
+ <button
+ style={{
+ ...styles.mapBtn,
+ backgroundColor: isAddingPosition ? '#ff475733' : '#132337cc',
+ borderColor: isAddingPosition ? '#ff4757' : '#1e3a5f',
+ color: isAddingPosition ? '#ff4757' : '#7dd3fc'
+ }}
+ onClick={() => setIsAddingPosition(!isAddingPosition)}
+ >
+ <Plus size={16} style={{marginRight: '6px'}} />
+ Add Position
+ </button>
+ <button
+ style={{
+ ...styles.mapBtn,
+ backgroundColor: isDrawing ? '#ff9f4333' : '#132337cc',
+ borderColor: isDrawing ? '#ff9f43' : '#1e3a5f',
+ color: isDrawing ? '#ff9f43' : '#7dd3fc'
+ }}
+ onClick={handleDrawAreaClick}
+ >
+ {isDrawing ? 'Stop Focus Mode' : 'Focus Search'}
+ </button>
+ <button style={styles.mapBtn}>
+ <Video size={16} style={{marginRight: '6px'}} />
+ Live Stream
+ </button>
+ </div>
+
+ {/* Recenter button */}
+ <button style={styles.recenterBtn}>
+ <Crosshair size={20} />
+ </button>
+ </div>
+
+ {/* Right Panel - Communications */}
+ <div style={styles.commsPanel}>
+ {/* Chat Area */}
+ <div style={styles.chatArea}>
+ {messages.map(msg => (
+ <div key={msg.id} style={styles.messageWrapper}>
+ <div style={{
+ ...styles.message,
+ ...(msg.type === 'operator' ? styles.operatorMessage :
+ msg.type === 'pilot' ? styles.pilotMessage :
+ styles.systemMessage)
+ }}>
+ <div style={styles.messageHeader}>
+ <span style={{
+ ...styles.messageSender,
+ color: msg.type === 'operator' ? '#00f2ea' :
+ msg.type === 'pilot' ? '#7bed9f' :
+ '#feca57'
+ }}>
+ {msg.type === 'operator' ? 'You' :
+ msg.type === 'pilot' ? 'Pilot' :
+ 'System'}
+ </span>
+ <span style={styles.messageTime}>{msg.time}</span>
+ </div>
+ <div style={styles.messageText}>{msg.text}</div>
+ </div>
+ </div>
+ ))}
+ </div>
+
+ {/* Voice Controls */}
+ <div style={styles.voiceControls}>
+ <button
+ style={{
+ ...styles.voiceBtn,
+ backgroundColor: isMuted ? '#1e3a5f' : '#2ecc71',
+ borderColor: isMuted ? '#00f2ea' : '#2ecc71'
+ }}
+ onClick={() => setIsMuted(!isMuted)}
+ >
+ {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+ <span style={styles.voiceBtnText}>
+ {isMuted ? 'Push to Talk' : 'Muted'}
+ </span>
+ </button>
+ <div style={styles.audioStatus}>
+ {!isMuted && <span style={styles.audioIndicator}>●</span>}
+ Audio: {isMuted ? 'Off' : 'Active'}
+ </div>
+ </div>
+
+ {/* Message Input */}
+ <div style={styles.inputArea}>
+ <input
+ type="text"
+ value={newMessage}
+ onChange={(e) => setNewMessage(e.target.value)}
+ onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(newMessage)}
+ placeholder="Type message or coordinates..."
+ style={styles.input}
+ />
+ <button
+ style={styles.sendBtn}
+ onClick={() => handleSendMessage(newMessage)}
+ >
+ <Send size={18} />
+ </button>
+ </div>
+ </div>
+ </div>
+ </div>
+ );
+};
+
+const styles = {
+ container: {
+ width: '100vw',
+ height: '100vh',
+ backgroundColor: '#0a1929',
+ color: '#e0e7ff',
+ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+ display: 'flex',
+ flexDirection: 'column',
+ overflow: 'hidden'
+ },
+ // Onboarding styles
+ onboardingWrapper: {
+ flex: 1,
+ display: 'flex',
+ flexDirection: 'column',
+ alignItems: 'center',
+ justifyContent: 'center',
+ gap: '48px'
+ },
+ onboardingTitle: {
+ fontSize: '48px',
+ fontWeight: 700,
+ color: '#e0e7ff',
+ margin: 0
+ },
+ missionCards: {
+ display: 'flex',
+ gap: '32px'
+ },
+ missionCard: {
+ width: '200px',
+ height: '200px',
+ backgroundColor: '#132337',
+ border: '2px solid #1e3a5f',
+ borderRadius: '16px',
+ display: 'flex',
+ flexDirection: 'column',
+ alignItems: 'center',
+ justifyContent: 'center',
+ gap: '20px',
+ cursor: 'pointer',
+ transition: 'all 0.2s',
+ ':hover': {
+ borderColor: '#00f2ea'
+ }
+ },
+ missionCardLabel: {
+ fontSize: '20px',
+ fontWeight: 500,
+ color: '#e0e7ff'
+ },
+ // Console styles
+ topBar: {
+ height: '60px',
+ backgroundColor: '#132337',
+ borderBottom: '1px solid #1e3a5f',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ padding: '0 24px'
+ },
+ settingsBtn: {
+ background: 'transparent',
+ border: '1px solid #1e3a5f',
+ borderRadius: '8px',
+ color: '#7dd3fc',
+ padding: '8px 12px',
+ cursor: 'pointer',
+ display: 'flex',
+ alignItems: 'center',
+ gap: '8px'
+ },
+ topBarRight: {
+ display: 'flex',
+ gap: '12px'
+ },
+ actionBtn: {
+ border: 'none',
+ borderRadius: '8px',
+ padding: '10px 20px',
+ fontWeight: 600,
+ fontSize: '14px',
+ cursor: 'pointer',
+ transition: 'all 0.2s'
+ },
+ abortBtn: {
+ backgroundColor: '#ff6b6b',
+ color: '#fff',
+ boxShadow: '0 0 12px rgba(255, 107, 107, 0.3)',
+ fontWeight: 700
+ },
+ completedBtn: {
+ backgroundColor: '#2ecc71',
+ color: '#fff',
+ boxShadow: '0 0 12px rgba(46, 204, 113, 0.3)',
+ fontWeight: 700
+ },
+ mainContent: {
+ flex: 1,
+ display: 'flex',
+ overflow: 'hidden'
+ },
+ mapPanel: {
+ width: '70%',
+ backgroundColor: '#0d1b2a',
+ position: 'relative',
+ overflow: 'hidden'
+ },
+ droneStatus: {
+ position: 'absolute',
+ top: '24px',
+ left: '24px',
+ backgroundColor: '#132337ee',
+ backdropFilter: 'blur(10px)',
+ border: '1px solid #00f2ea66',
+ borderRadius: '12px',
+ padding: '16px',
+ zIndex: 10,
+ minWidth: '200px',
+ boxShadow: '0 0 10px rgba(0, 242, 234, 0.1)'
+ },
+ statusRow: {
+ display: 'flex',
+ justifyContent: 'space-between',
+ marginBottom: '8px'
+ },
+ statusLabel: {
+ fontSize: '13px',
+ color: '#7dd3fc',
+ textTransform: 'uppercase',
+ letterSpacing: '0.5px'
+ },
+ statusValue: {
+ fontSize: '16px',
+ fontWeight: 700,
+ fontFamily: 'monospace',
+ textShadow: '0 0 8px currentColor'
+ },
+ mapContent: {
+ width: '100%',
+ height: '100%',
+ position: 'relative',
+ backgroundImage: `
+ linear-gradient(rgba(0, 242, 234, 0.08) 1px, transparent 1px),
+ linear-gradient(90deg, rgba(0, 242, 234, 0.08) 1px, transparent 1px)
+ `,
+ backgroundSize: '50px 50px'
+ },
+ positionLabel: {
+ fontSize: '10px',
+ fontWeight: 700,
+ color: '#ff4757',
+ backgroundColor: '#132337',
+ padding: '2px 6px',
+ borderRadius: '4px',
+ marginTop: '4px',
+ textAlign: 'center',
+ whiteSpace: 'nowrap'
+ },
+ instructionOverlay: {
+ position: 'absolute',
+ top: '50%',
+ left: '50%',
+ transform: 'translate(-50%, -50%)',
+ zIndex: 10
+ },
+ instructionBox: {
+ backgroundColor: '#132337ee',
+ border: '1px solid #00f2ea66',
+ borderRadius: '12px',
+ padding: '16px 24px',
+ fontSize: '16px',
+ color: '#7dd3fc',
+ textAlign: 'center'
+ },
+ mapControls: {
+ position: 'absolute',
+ bottom: '24px',
+ left: '50%',
+ transform: 'translateX(-50%)',
+ display: 'flex',
+ gap: '12px'
+ },
+ mapBtn: {
+ backgroundColor: '#132337cc',
+ backdropFilter: 'blur(10px)',
+ border: '1px solid #1e3a5f',
+ borderRadius: '8px',
+ color: '#7dd3fc',
+ padding: '10px 16px',
+ fontSize: '13px',
+ fontWeight: 500,
+ cursor: 'pointer',
+ display: 'flex',
+ alignItems: 'center'
+ },
+ recenterBtn: {
+ position: 'absolute',
+ bottom: '24px',
+ right: '24px',
+ backgroundColor: '#132337cc',
+ backdropFilter: 'blur(10px)',
+ border: '1px solid #1e3a5f',
+ borderRadius: '8px',
+ color: '#7dd3fc',
+ padding: '12px',
+ cursor: 'pointer',
+ display: 'flex',
+ alignItems: 'center',
+ justifyContent: 'center',
+ transition: 'all 0.2s'
+ },
+ areaSvg: {
+ position: 'absolute',
+ top: 0,
+ left: 0,
+ width: '100%',
+ height: '100%',
+ pointerEvents: 'none',
+ overflow: 'visible'
+ },
+ areaPolygon: {
+ fill: 'rgba(255, 159, 67, 0.2)',
+ stroke: '#ff9f43',
+ strokeWidth: '1.5',
+ strokeDasharray: '8,4'
+ },
+ drawingLine: {
+ fill: 'none',
+ stroke: '#ff9f43',
+ strokeWidth: '1.5',
+ strokeLinecap: 'round',
+ strokeLinejoin: 'round'
+ },
+ commsPanel: {
+ width: '30%',
+ backgroundColor: '#132337',
+ borderLeft: '2px solid #00f2ea33',
+ display: 'flex',
+ flexDirection: 'column',
+ boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.3)'
+ },
+ chatArea: {
+ flex: 1,
+ overflowY: 'auto',
+ padding: '16px',
+ display: 'flex',
+ flexDirection: 'column',
+ gap: '12px'
+ },
+ messageWrapper: {
+ display: 'flex',
+ flexDirection: 'column',
+ marginBottom: '8px'
+ },
+ message: {
+ padding: '8px 12px',
+ maxWidth: '75%',
+ borderRadius: '8px',
+ position: 'relative'
+ },
+ operatorMessage: {
+ alignSelf: 'flex-end',
+ backgroundColor: '#00f2ea22',
+ borderTopRightRadius: '2px'
+ },
+ pilotMessage: {
+ alignSelf: 'flex-start',
+ backgroundColor: '#1e3a5f',
+ borderTopLeftRadius: '2px'
+ },
+ systemMessage: {
+ fontSize: '12px',
+ fontStyle: 'italic',
+ textAlign: 'center',
+ opacity: 0.7,
+ alignSelf: 'center',
+ backgroundColor: 'transparent',
+ maxWidth: '100%'
+ },
+ messageHeader: {
+ display: 'flex',
+ justifyContent: 'space-between',
+ alignItems: 'baseline',
+ marginBottom: '2px',
+ gap: '8px'
+ },
+ messageSender: {
+ fontSize: '11px',
+ fontWeight: 600,
+ textTransform: 'uppercase',
+ letterSpacing: '0.3px'
+ },
+ messageTime: {
+ fontSize: '10px',
+ color: '#7dd3fc77',
+ fontFamily: 'monospace',
+ marginLeft: '8px'
+ },
+ messageText: {
+ fontSize: '13px',
+ lineHeight: 1.4,
+ color: '#e0e7ff',
+ wordWrap: 'break-word'
+ },
+ voiceControls: {
+ padding: '16px',
+ borderTop: '1px solid #1e3a5f',
+ display: 'flex',
+ alignItems: 'center',
+ gap: '12px',
+ backgroundColor: '#0d1b2a'
+ },
+ voiceBtn: {
+ border: '2px solid #00f2ea',
+ borderRadius: '8px',
+ color: '#e0e7ff',
+ padding: '12px 18px',
+ fontSize: '13px',
+ fontWeight: 600,
+ cursor: 'pointer',
+ display: 'flex',
+ alignItems: 'center',
+ gap: '8px',
+ transition: 'all 0.2s',
+ boxShadow: '0 0 12px rgba(0, 242, 234, 0.2)'
+ },
+ voiceBtnText: {
+ fontSize: '12px'
+ },
+ audioStatus: {
+ fontSize: '12px',
+ color: '#7dd3fc',
+ display: 'flex',
+ alignItems: 'center',
+ gap: '6px'
+ },
+ audioIndicator: {
+ color: '#7bed9f',
+ fontSize: '16px',
+ animation: 'blink 1s infinite'
+ },
+ inputArea: {
+ padding: '16px',
+ borderTop: '1px solid #1e3a5f',
+ display: 'flex',
+ gap: '8px'
+ },
+ input: {
+ flex: 1,
+ backgroundColor: '#1e3a5f',
+ border: '1px solid #1e3a5f',
+ borderRadius: '8px',
+ color: '#e0e7ff',
+ padding: '10px 12px',
+ fontSize: '13px',
+ outline: 'none'
+ },
+ sendBtn: {
+ backgroundColor: '#00f2ea',
+ border: 'none',
+ borderRadius: '8px',
+ color: '#0a1929',
+ padding: '10px 16px',
+ cursor: 'pointer',
+ display: 'flex',
+ alignItems: 'center'
+ }
+};
+
+export default SeahoakConsole;

@@ -25,7 +25,7 @@ class KalmanFilter:
         state_prior = state + ocean_velocity * dt
 
         F = np.eye(2)
-        self.cov = F @ self.cov @ F.T + self.Q
+        self.cov = F @ self.cov @ F.T + self.Q  # dt * np.eye(2) @ ocean_velocity  #
 
         return state_prior
 

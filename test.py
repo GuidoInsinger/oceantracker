@@ -1,27 +1,101 @@
 import numpy as np
+import numpy.typing as npt
 
-from src.currents import new_ocean
 from src.kalman import KalmanFilter
-from src.utils import vector_to_latlon_delta
-from src.viz import initialize_viewer, log_point
+from src.viz import initialize_viewer, log_points
 
 if __name__ == "__main__":
     # lat, lon = 47.22286256029357, -2.3091830879039024
     initialize_viewer()
+    T = 5400
+    dt = 30  # seconds
+    N_sim = T // dt
 
-    ll_arr = np.array([47.2720592, -3.1994916])
-    dt = 60  # seconds
+    target_pos_ll_start = np.array([47.2720592, -3.1994916])
+    target_pos_ll_arr = np.copy(target_pos_ll_start)
 
-    cov0 = np.eye(2) * 100
-    Q = np.eye(2) * 10
-    R = np.eye(2) * 10
+    boat_pos_ll_start = np.array([47.2885966, -2.5367349])
+    boat_pos_ll_arr = np.copy(boat_pos_ll_start)
+    boat_vel = 40 / 3.6  # 40kmh
 
-    ekf = KalmanFilter(cov0, Q, R)
+    drone_pos_ll_start = np.array([47.2924802, -2.5420609])
+    drone_pos_ll_arr = np.copy(drone_pos_ll_start)
+    drone_vel = 90 / 3.6  # 90kmh
 
-    for _ in range(1000):
-        log_point(ll_arr)
+    target_ll_history: npt.NDArray[np.float64] = np.zeros((N_sim, 2))
+    sigma_history: npt.NDArray[np.float64] = np.zeros(N_sim)
 
-        velocity_vec = 60 * new_ocean(ll_arr)
-        del_ll = vector_to_latlon_delta(velocity_vec, ll_arr[0])
-        # print(del_lat, del_lon)
-        ll_arr += del_ll
+    boat_ll_history: npt.NDArray[np.float64] = np.zeros((N_sim, 2))
+    drone_ll_history: npt.NDArray[np.float64] = np.zeros((N_sim, 2))
+
+    xy_arr = np.zeros(2)
+
+    cov0 = np.eye(2) * 100**2
+    Q = np.eye(2) * 20**2  # 10m per timestep
+    R = np.eye(2) * 100
+
+    kalman = KalmanFilter(cov0, Q, R)
+
+    def get_scale(lat: float):
+        EARTH_RADIUS = 6371000  # meters
+        scale = np.array(
+            [
+                np.pi * EARTH_RADIUS / 180,
+                (np.pi * EARTH_RADIUS / 180) * np.cos(np.radians(lat)),
+            ]
+        )
+        return scale
+
+    def track_target(
+        target_pos_ll: npt.NDArray[np.float64],
+        vehicle_pos_ll: npt.NDArray[np.float64],
+        scale: npt.NDArray[np.float64],
+        vehicle_vel: float,
+        dt: float,
+    ):
+        vehicle_to_target_xy = (target_pos_ll - vehicle_pos_ll) * scale
+        if np.linalg.norm(vehicle_to_target_xy) < 5000:
+            vehicle_vel *= np.linalg.norm(vehicle_to_target_xy) / 5000.0  # type: ignore
+
+        vehicle_velocity_vec_xy = (
+            vehicle_vel * vehicle_to_target_xy / np.linalg.norm(vehicle_to_target_xy)
+        )
+
+        updated_vehicle_pos_ll = vehicle_pos_ll + vehicle_velocity_vec_xy / scale * dt
+        return updated_vehicle_pos_ll
+
+    for i in range(N_sim):
+        current_scale = get_scale(target_pos_ll_arr[0])
+
+        # update target pos
+        target_pos_ll_arr = target_pos_ll_start + xy_arr / current_scale
+        target_ll_history[i] = target_pos_ll_arr
+        sigma_history[i] = np.sqrt(kalman.cov[0, 0])
+
+        # update boat pos
+
+        boat_pos_ll_arr = track_target(
+            target_pos_ll_arr, boat_pos_ll_arr, current_scale, boat_vel, dt
+        )
+        boat_ll_history[i] = boat_pos_ll_arr
+
+        # update drone pos
+        drone_pos_ll_arr = track_target(
+            target_pos_ll_arr, drone_pos_ll_arr, current_scale, drone_vel, dt
+        )
+        drone_ll_history[i] = drone_pos_ll_arr
+
+        ocean_vel = np.array([-1.0, 1.0]) + np.random.random(
+            2
+        )  # 10 * new_ocean(target_pos_ll_arr)
+        xy_arr = kalman.predict(state=xy_arr, ocean_velocity=ocean_vel, dt=dt)
+
+        log_points(
+            target_ll_history[: i + 1],
+            boat_ll_history[: i + 1],
+            drone_ll_history[: i + 1],
+            sigma_history[: i + 1],
+            i + 1,
+        )
+    print(sigma_history[33], sigma_history[75])
+    # print(ll_history)
