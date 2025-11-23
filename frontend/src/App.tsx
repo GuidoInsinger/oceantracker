@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import { Crosshair, Mic, MicOff, Plus, Send, Settings, Ship, User, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { MapContainer, Marker, Polygon, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Polygon, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const SeahoakConsole = () => {
  // Onboarding state
@@ -28,6 +28,13 @@ const [isMouseDown, setIsMouseDown] = useState(false);
 const [lastKnownPositions, setLastKnownPositions] = useState<[number, number][]>([]);
 const [isAddingPosition, setIsAddingPosition] = useState(true);
 const mapRef = useRef<L.Map | null>(null);
+const [simulationResults, setSimulationResults] = useState<{
+  target_ll_history: [number, number][];
+  boat_ll_history: [number, number][];
+  drone_ll_history: [number, number][];
+  sigma_history: number[];
+} | null>(null);
+const [isSimulating, setIsSimulating] = useState(false);
 
 // Fix for default marker icon in Vite
 useEffect(() => {
@@ -97,10 +104,51 @@ const MapClickHandler = ({
   return null;
 };
 
-const handleMapClick = (latlng: [number, number]) => {
+  const runSimulation = async (targetLat: number, targetLon: number) => {
+    setIsSimulating(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/simulate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          target_lat: targetLat,
+          target_lon: targetLon,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Simulation failed');
+      }
+
+      const data = await response.json();
+      setSimulationResults({
+        target_ll_history: data.target_ll_history.map(([lat, lon]: [number, number]) => [lat, lon] as [number, number]),
+        boat_ll_history: data.boat_ll_history.map(([lat, lon]: [number, number]) => [lat, lon] as [number, number]),
+        drone_ll_history: data.drone_ll_history.map(([lat, lon]: [number, number]) => [lat, lon] as [number, number]),
+        sigma_history: data.sigma_history,
+      });
+    } catch (error) {
+      console.error('Error running simulation:', error);
+      setMessages((prevMessages) => [...prevMessages, {
+        id: prevMessages.length + 1,
+        type: 'system',
+        text: 'Simulation failed. Make sure the backend server is running.',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+      }]);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleMapClick = (latlng: [number, number]) => {
   if (isAddingPosition && !isDrawing) {
-    setLastKnownPositions([...lastKnownPositions, latlng]);
+    const newPositions = [...lastKnownPositions, latlng];
+    setLastKnownPositions(newPositions);
     setIsAddingPosition(false);
+    // Run simulation with the latest position
+    runSimulation(latlng[0], latlng[1]);
     return;
   }
 
@@ -268,6 +316,73 @@ const handleRecenter = () => {
             />
           ))}
 
+          {/* Simulation paths */}
+          {simulationResults && (
+            <>
+              {/* Target path (person in water) */}
+              <Polyline
+                positions={simulationResults.target_ll_history}
+                pathOptions={{
+                  color: '#32a8a8',
+                  weight: 3,
+                  opacity: 0.8,
+                }}
+              />
+              {/* Boat path */}
+              <Polyline
+                positions={simulationResults.boat_ll_history}
+                pathOptions={{
+                  color: '#0066ff',
+                  weight: 3,
+                  opacity: 0.8,
+                }}
+              />
+              {/* Drone path */}
+              <Polyline
+                positions={simulationResults.drone_ll_history}
+                pathOptions={{
+                  color: '#00ff00',
+                  weight: 3,
+                  opacity: 0.8,
+                }}
+              />
+              {/* Current positions */}
+              {simulationResults.target_ll_history.length > 0 && (
+                <Marker
+                  position={simulationResults.target_ll_history[simulationResults.target_ll_history.length - 1]}
+                  icon={L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="width: 12px; height: 12px; background-color: #32a8a8; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6],
+                  })}
+                />
+              )}
+              {simulationResults.boat_ll_history.length > 0 && (
+                <Marker
+                  position={simulationResults.boat_ll_history[simulationResults.boat_ll_history.length - 1]}
+                  icon={L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="width: 12px; height: 12px; background-color: #0066ff; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6],
+                  })}
+                />
+              )}
+              {simulationResults.drone_ll_history.length > 0 && (
+                <Marker
+                  position={simulationResults.drone_ll_history[simulationResults.drone_ll_history.length - 1]}
+                  icon={L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="width: 12px; height: 12px; background-color: #00ff00; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6],
+                  })}
+                />
+              )}
+            </>
+          )}
+
           {/* Render completed areas */}
           {areas.map((area, idx) => (
             <Polygon
@@ -304,6 +419,15 @@ const handleRecenter = () => {
           <div style={styles.instructionOverlay}>
             <div style={styles.instructionBox}>
               Click on map to set last known position
+            </div>
+          </div>
+        )}
+
+        {/* Simulation status overlay */}
+        {isSimulating && (
+          <div style={styles.instructionOverlay}>
+            <div style={styles.instructionBox}>
+              Running simulation...
             </div>
           </div>
         )}

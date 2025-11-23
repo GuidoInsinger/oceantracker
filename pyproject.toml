@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.121.3",
     "numpy>=2.3.5",
     "openmeteo-requests>=1.7.4",
     "pandas>=2.3.3",
@@ -12,4 +13,5 @@ dependencies = [
     "requests-cache>=1.2.1",
     "rerun-sdk>=0.27.2",
     "retry-requests>=2.0.0",
+    "uvicorn>=0.32.0",
 ]
