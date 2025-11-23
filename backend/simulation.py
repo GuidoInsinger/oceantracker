@@ -119,9 +119,9 @@ def run_simulation(
         )
         drone_ll_history[i] = drone_pos_ll_arr
 
-        ocean_vel = new_ocean(
-            target_pos_ll_arr
-        )  # np.array([-1.0, 1.0]) + np.random.random(
+        ocean_vel = new_ocean(target_pos_ll_arr)
+
+        # np.array([-1.0, 1.0]) + np.random.random(
         #     2
         # )  # 10 * new_ocean(target_pos_ll_arr)
         xy_arr = kalman.predict(state=xy_arr, ocean_velocity=ocean_vel, dt=dt)

@@ -53,12 +53,14 @@ def log_points(
             radii=30,
             colors=[0, 0, 255],
         ),
+        # draworder=2,
     )
     rr.log(
         "map/drone",
         rr.GeoLineStrings(
             lat_lon=drone_arr,
             radii=30,
-            colors=[0, 255, 0],
+            colors=[0, 0, 0],
         ),
+        # draworder=1,
     )
