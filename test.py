@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.simulation import run_simulation
+from backend.simulation import run_simulation
 
 if __name__ == "__main__":
     # Example: Run simulation with hardcoded GPS coordinates

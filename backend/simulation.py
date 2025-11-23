@@ -3,13 +3,7 @@ import numpy.typing as npt
 
 from backend.currents import new_ocean
 from backend.kalman import KalmanFilter
-
-# Optional imports for visualization
-try:
-    from src.viz import initialize_viewer, log_points
-except ImportError:
-    log_points = None
-    initialize_viewer = None
+from backend.viz import initialize_viewer, log_points
 
 
 def run_simulation(
