@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.typing as npt
 
-from src.currents import new_ocean
-from src.kalman import KalmanFilter
+from backend.currents import new_ocean
+from backend.kalman import KalmanFilter
 
 # Optional imports for visualization
 try:
