@@ -1,10 +1,12 @@
+import L from 'leaflet';
 import { Crosshair, Mic, MicOff, Plus, Send, Settings, Ship, User, Video } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { MapContainer, Marker, Polygon, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const SeahoakConsole = () => {
  // Onboarding state
  const [currentScreen, setCurrentScreen] = useState('onboarding');
- const [missionType, setMissionType] = useState(null);
+ const [missionType, setMissionType] = useState<string | null>(null);
 
  // Mission console state
  const [messages, setMessages] = useState([
@@ -19,12 +21,23 @@ const SeahoakConsole = () => {
  const [isMuted, setIsMuted] = useState(true);
  const [battery, setBattery] = useState(87);
  const [flightTime, setFlightTime] = useState(34);
- const [isDrawing, setIsDrawing] = useState(false);
- const [drawingPoints, setDrawingPoints] = useState([]);
- const [areas, setAreas] = useState([]);
- const [isMouseDown, setIsMouseDown] = useState(false);
- const [lastKnownPositions, setLastKnownPositions] = useState([]);
- const [isAddingPosition, setIsAddingPosition] = useState(true);
+const [isDrawing, setIsDrawing] = useState(false);
+const [drawingPoints, setDrawingPoints] = useState<[number, number][]>([]);
+const [areas, setAreas] = useState<[number, number][][]>([]);
+const [isMouseDown, setIsMouseDown] = useState(false);
+const [lastKnownPositions, setLastKnownPositions] = useState<[number, number][]>([]);
+const [isAddingPosition, setIsAddingPosition] = useState(true);
+const mapRef = useRef<L.Map | null>(null);
+
+// Fix for default marker icon in Vite
+useEffect(() => {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  });
+}, []);
 
  useEffect(() => {
  const interval = setInterval(() => {
@@ -34,7 +47,7 @@ const SeahoakConsole = () => {
  return () => clearInterval(interval);
  }, []);
 
- const handleSendMessage = (text) => {
+ const handleSendMessage = (text: string) => {
  if (text.trim()) { 
  setMessages([...messages, {
  id: messages.length + 1,
@@ -46,61 +59,88 @@ const SeahoakConsole = () => {
  }
  };
 
- const handleMapClick = (e) => {
- if (isAddingPosition && !isDrawing) {
- const rect = e.currentTarget.getBoundingClientRect();
- const x = ((e.clientX - rect.left) / rect.width) * 100;
- const y = ((e.clientY - rect.top) / rect.height) * 100;
- setLastKnownPositions([...lastKnownPositions, { x, y }]);
- setIsAddingPosition(false);
- return;
- }
+// Map instance capture component
+const MapInstanceCapture = ({ mapRef }: { mapRef: { current: L.Map | null } }) => {
+  const map = useMap();
+  useEffect(() => {
+    mapRef.current = map;
+  }, [map, mapRef]);
+  return null;
+};
 
- if (!isDrawing) return;
- const rect = e.currentTarget.getBoundingClientRect();
- const x = ((e.clientX - rect.left) / rect.width) * 100;
- const y = ((e.clientY - rect.top) / rect.height) * 100;
- setDrawingPoints([...drawingPoints, { x, y }]);
- };
+// Map click handler component
+const MapClickHandler = ({ 
+  isDrawing, 
+  isAddingPosition, 
+  onMapClick, 
+  onMouseDown, 
+  onMouseUp 
+}: {
+  isDrawing: boolean;
+  isAddingPosition: boolean;
+  onMapClick: (latlng: [number, number]) => void;
+  onMouseDown: () => void;
+  onMouseUp: () => void;
+}) => {
+  useMapEvents({
+    click: (e) => {
+      const latlng: [number, number] = [e.latlng.lat, e.latlng.lng];
+      onMapClick(latlng);
+    },
+    mousedown: () => {
+      onMouseDown();
+    },
+    mouseup: () => {
+      onMouseUp();
+    },
+  });
+  return null;
+};
 
- const handleMouseDown = (e) => {
- if (isAddingPosition && !isDrawing) {
- handleMapClick(e);
- return;
- }
- if (!isDrawing) return;
- setIsMouseDown(true);
- handleMapClick(e);
- };
+const handleMapClick = (latlng: [number, number]) => {
+  if (isAddingPosition && !isDrawing) {
+    setLastKnownPositions([...lastKnownPositions, latlng]);
+    setIsAddingPosition(false);
+    return;
+  }
 
- const handleMouseMove = (e) => {
- if (!isDrawing || !isMouseDown) return;
- const rect = e.currentTarget.getBoundingClientRect();
- const x = ((e.clientX - rect.left) / rect.width) * 100;
- const y = ((e.clientY - rect.top) / rect.height) * 100;
- const lastPoint = drawingPoints[drawingPoints.length - 1];
- if (!lastPoint || Math.hypot(x - lastPoint.x, y - lastPoint.y) > 1) {
- setDrawingPoints([...drawingPoints, { x, y }]);
- }
- };
+  if (!isDrawing) return;
+  setDrawingPoints([...drawingPoints, latlng]);
+};
 
- const handleMouseUp = () => {
- if (isMouseDown) setIsMouseDown(false);
- };
+const handleMouseDown = () => {
+  if (!isDrawing) return;
+  setIsMouseDown(true);
+};
 
- const handleDrawAreaClick = () => {
- if (isDrawing) {
- setDrawingPoints([]);
- setAreas([]);
- setIsDrawing(false);
- setIsMouseDown(false);
- } else {
- setIsDrawing(true);
- setDrawingPoints([]);
- }
- };
+const handleMouseUp = () => {
+  if (isMouseDown) setIsMouseDown(false);
+};
 
- const handleMissionSelect = (type) => {
+const handleDrawAreaClick = () => {
+  if (isDrawing) {
+    if (drawingPoints.length > 2) {
+      setAreas([...areas, drawingPoints]);
+    }
+    setDrawingPoints([]);
+    setIsDrawing(false);
+    setIsMouseDown(false);
+  } else {
+    setIsDrawing(true);
+    setDrawingPoints([]);
+  }
+};
+
+const handleRecenter = () => {
+  if (mapRef.current && lastKnownPositions.length > 0) {
+    const bounds = L.latLngBounds(lastKnownPositions);
+    mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+  } else if (mapRef.current) {
+    mapRef.current.setView([47.2736, -2.2139], 13);
+  }
+};
+
+ const handleMissionSelect = (type: string) => {
  setMissionType(type);
  setCurrentScreen('console');
  setIsAddingPosition(true);
@@ -169,79 +209,105 @@ const SeahoakConsole = () => {
  </div>
  </div>
 
- {/* Map Content */}
- <div
- style={{
- ...styles.mapContent,
- cursor: isDrawing ? 'crosshair' : isAddingPosition ? 'crosshair' : 'default'
- }}
- onMouseDown={handleMouseDown}
- onMouseMove={handleMouseMove}
- onMouseUp={handleMouseUp}
- onMouseLeave={handleMouseUp}
- >
- {/* Last known positions (red crosses) */}
- {lastKnownPositions.map((pos, idx) => (
- <div
- key={idx}
- style={{
- position: 'absolute',
- left: `${pos.x}%`,
- top: `${pos.y}%`,
- transform: 'translate(-50%, -50%)',
- zIndex: 5
- }}
- >
- <svg width="24" height="24" viewBox="0 0 24 24">
- <line x1="4" y1="4" x2="20" y2="20" stroke="#ff4757" strokeWidth="3" strokeLinecap="round"/>
- <line x1="20" y1="4" x2="4" y2="20" stroke="#ff4757" strokeWidth="3" strokeLinecap="round"/>
- </svg>
- <div style={styles.positionLabel}>LKP {idx + 1}</div>
- </div>
- ))}
+      {/* Map Content */}
+      <div style={{
+        ...styles.mapContent,
+        cursor: isDrawing ? 'crosshair' : isAddingPosition ? 'crosshair' : 'default'
+      }}>
+        <MapContainer
+          center={[47.2736, -2.2139]}
+          zoom={13}
+          style={{ width: '100%', height: '100%', zIndex: 1, position: 'relative' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          <MapInstanceCapture mapRef={mapRef} />
+          
+          <MapClickHandler
+            isDrawing={isDrawing}
+            isAddingPosition={isAddingPosition}
+            onMapClick={handleMapClick}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+          />
 
- {/* Render completed areas */}
- {areas.map((area, idx) => (
- <svg key={idx} style={styles.areaSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
- <polygon
- points={area.map(p => `${p.x},${p.y}`).join(' ')}
- style={styles.areaPolygon}
- />
- </svg>
- ))}
+          {/* Last known positions (red crosses) */}
+          {lastKnownPositions.map((pos, idx) => (
+            <Marker
+              key={idx}
+              position={pos}
+              icon={L.divIcon({
+                className: 'custom-marker',
+                html: `
+                  <div style="position: relative;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                      <line x1="4" y1="4" x2="20" y2="20" stroke="#ff4757" stroke-width="3" stroke-linecap="round"/>
+                      <line x1="20" y1="4" x2="4" y2="20" stroke="#ff4757" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <div style="
+                      position: absolute;
+                      top: 28px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      font-size: 10px;
+                      font-weight: 700;
+                      color: #ff4757;
+                      background-color: #132337;
+                      padding: 2px 6px;
+                      border-radius: 4px;
+                      white-space: nowrap;
+                    ">LKP ${idx + 1}</div>
+                  </div>
+                `,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+              })}
+            />
+          ))}
 
- {/* Render current drawing */}
- {drawingPoints.length > 0 && (
- <svg style={styles.areaSvg} viewBox="0 0 100 100" preserveAspectRatio="none">
- {drawingPoints.length > 2 && (
- <polygon
- points={drawingPoints.map(p => `${p.x},${p.y}`).join(' ')}
- fill="rgba(255, 159, 67, 0.15)"
- stroke="none"
- />
- )}
- <path
- d={`M ${drawingPoints.map(p => `${p.x},${p.y}`).join(' L ')}`}
- style={styles.drawingLine}
- />
- {drawingPoints.length > 0 && (
- <circle cx={drawingPoints[0].x} cy={drawingPoints[0].y} r="1" fill="#2ecc71" stroke="#fff" strokeWidth="0.25"/>
- )}
- {drawingPoints.length > 1 && (
- <circle cx={drawingPoints[drawingPoints.length - 1].x} cy={drawingPoints[drawingPoints.length - 1].y} r="0.8" fill="#ff9f43" stroke="#fff" strokeWidth="0.25"/>
- )}
- </svg>
- )}
+          {/* Render completed areas */}
+          {areas.map((area, idx) => (
+            <Polygon
+              key={idx}
+              positions={area}
+              pathOptions={{
+                fillColor: '#ff9f43',
+                fillOpacity: 0.2,
+                color: '#ff9f43',
+                weight: 1.5,
+                dashArray: '8, 4',
+              }}
+            />
+          ))}
 
- {/* Instruction overlay when adding position */}
- {isAddingPosition && lastKnownPositions.length === 0 && (
- <div style={styles.instructionOverlay}>
- <div style={styles.instructionBox}>
- Click on map to set last known position
- </div>
- </div>
- )}
- </div>
+          {/* Render current drawing */}
+          {drawingPoints.length > 0 && (
+            <Polygon
+              positions={drawingPoints}
+              pathOptions={{
+                fillColor: '#ff9f43',
+                fillOpacity: drawingPoints.length > 2 ? 0.15 : 0,
+                color: '#ff9f43',
+                weight: 1.5,
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            />
+          )}
+        </MapContainer>
+
+        {/* Instruction overlay when adding position */}
+        {isAddingPosition && lastKnownPositions.length === 0 && (
+          <div style={styles.instructionOverlay}>
+            <div style={styles.instructionBox}>
+              Click on map to set last known position
+            </div>
+          </div>
+        )}
+      </div>
 
  {/* Map controls */}
  <div style={styles.mapControls}>
@@ -274,10 +340,10 @@ const SeahoakConsole = () => {
  </button>
  </div>
 
- {/* Recenter button */}
- <button style={styles.recenterBtn}>
- <Crosshair size={20} />
- </button>
+      {/* Recenter button */}
+      <button style={styles.recenterBtn} onClick={handleRecenter}>
+        <Crosshair size={20} />
+      </button>
  </div>
 
  {/* Right Panel - Communications */}
@@ -494,16 +560,11 @@ const styles = {
  fontFamily: 'monospace',
  textShadow: '0 0 8px currentColor'
  },
- mapContent: {
- width: '100%',
- height: '100%',
- position: 'relative',
- backgroundImage: `
- linear-gradient(rgba(0, 242, 234, 0.08) 1px, transparent 1px),
- linear-gradient(90deg, rgba(0, 242, 234, 0.08) 1px, transparent 1px)
- `,
- backgroundSize: '50px 50px'
- },
+    mapContent: {
+      width: '100%',
+      height: '100%',
+      position: 'relative'
+    },
  positionLabel: {
  fontSize: '10px',
  fontWeight: 700,
@@ -531,14 +592,16 @@ const styles = {
  color: '#7dd3fc',
  textAlign: 'center'
  },
- mapControls: {
- position: 'absolute',
- bottom: '24px',
- left: '50%',
- transform: 'translateX(-50%)',
- display: 'flex',
- gap: '12px'
- },
+    mapControls: {
+      position: 'absolute',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      display: 'flex',
+      gap: '12px',
+      zIndex: 1000,
+      pointerEvents: 'auto'
+    },
  mapBtn: {
  backgroundColor: '#132337cc',
  backdropFilter: 'blur(10px)',
@@ -552,22 +615,24 @@ const styles = {
  display: 'flex',
  alignItems: 'center'
  },
- recenterBtn: {
- position: 'absolute',
- bottom: '24px',
- right: '24px',
- backgroundColor: '#132337cc',
- backdropFilter: 'blur(10px)',
- border: '1px solid #1e3a5f',
- borderRadius: '8px',
- color: '#7dd3fc',
- padding: '12px',
- cursor: 'pointer',
- display: 'flex',
- alignItems: 'center',
- justifyContent: 'center',
- transition: 'all 0.2s'
- },
+    recenterBtn: {
+      position: 'absolute',
+      bottom: '24px',
+      right: '24px',
+      backgroundColor: '#132337cc',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid #1e3a5f',
+      borderRadius: '8px',
+      color: '#7dd3fc',
+      padding: '12px',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.2s',
+      zIndex: 1000,
+      pointerEvents: 'auto'
+    },
  areaSvg: {
  position: 'absolute',
  top: 0,
