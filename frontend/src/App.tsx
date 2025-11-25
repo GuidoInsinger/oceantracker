@@ -35,6 +35,7 @@ const [simulationResults, setSimulationResults] = useState<{
   sigma_history: number[];
 } | null>(null);
 const [isSimulating, setIsSimulating] = useState(false);
+const [showLivestream, setShowLivestream] = useState(false);
 
 // Fix for default marker icon in Vite
 useEffect(() => {
@@ -431,6 +432,71 @@ const handleRecenter = () => {
             </div>
           </div>
         )}
+
+        {/* Livestream Modal */}
+        {showLivestream && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              zIndex: 10000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setShowLivestream(false)}
+          >
+            <div 
+              style={{
+                position: 'relative',
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img 
+                src="/ir_image.jpg" 
+                alt="IR Livestream" 
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '90vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                }}
+              />
+              <button
+                onClick={() => setShowLivestream(false)}
+                style={{
+                  position: 'absolute',
+                  top: '20px',
+                  right: '20px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  color: '#0a1929',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
  {/* Map controls */}
@@ -458,7 +524,7 @@ const handleRecenter = () => {
  >
  {isDrawing ? 'Stop Focus Mode' : 'Focus Search'}
  </button>
- <button style={styles.mapBtn}>
+ <button style={styles.mapBtn} onClick={() => setShowLivestream(true)}>
  <Video size={16} style={{marginRight: '6px'}} />
  Live Stream
  </button>

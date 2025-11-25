@@ -86,9 +86,15 @@ def run_simulation(
         vehicle_pos_ll: npt.NDArray[np.float64],
         scale: npt.NDArray[np.float64],
         vehicle_vel: float,
+        # logs: str,
         dt: float,
     ):
         vehicle_to_target_xy = (target_pos_ll - vehicle_pos_ll) * scale
+        # if vehicle_vel < 50 / 3.6:
+        #     logs += f"**BOAT DISTANCE**: {np.linalg.norm(vehicle_to_target_xy):.2f} meters \n"
+        # else:
+        #     logs += f"**DRONE DISTANCE**: {np.linalg.norm(vehicle_to_target_xy):.2f} meters \n"
+
         if np.linalg.norm(vehicle_to_target_xy) < 5000:
             vehicle_vel *= np.linalg.norm(vehicle_to_target_xy) / 5000.0  # type: ignore
 
@@ -100,6 +106,8 @@ def run_simulation(
         return updated_vehicle_pos_ll
 
     for i in range(N_sim):
+        # logs = f"## Logs at {(dt * (i + 1)) / 60} minutes \n"
+
         current_scale = get_scale(target_pos_ll_arr[0])
 
         # update target pos
@@ -108,22 +116,24 @@ def run_simulation(
         sigma_history[i] = np.sqrt(kalman.cov[0, 0])
 
         # update boat pos
-        boat_pos_ll_arr = track_target(
-            target_pos_ll_arr, boat_pos_ll_arr, current_scale, boat_vel, dt
-        )
+        if i * dt > 600:
+            boat_pos_ll_arr = track_target(
+                target_pos_ll_arr, boat_pos_ll_arr, current_scale, boat_vel, dt
+            )
         boat_ll_history[i] = boat_pos_ll_arr
 
         # update drone pos
         drone_pos_ll_arr = track_target(
             target_pos_ll_arr, drone_pos_ll_arr, current_scale, drone_vel, dt
         )
+
         drone_ll_history[i] = drone_pos_ll_arr
 
         ocean_vel = new_ocean(target_pos_ll_arr)
 
-        # np.array([-1.0, 1.0]) + np.random.random(
+        # ocean_vel = np.array([-1.0, 1.0]) + np.random.random(
         #     2
-        # )  # 10 * new_ocean(target_pos_ll_arr)
+        # )  # 10 *
         xy_arr = kalman.predict(state=xy_arr, ocean_velocity=ocean_vel, dt=dt)
 
         if use_rerun and log_points is not None:
@@ -132,7 +142,7 @@ def run_simulation(
                 boat_ll_history[: i + 1],
                 drone_ll_history[: i + 1],
                 sigma_history[: i + 1],
-                i + 1,
+                dt * (i + 1),
             )
 
     return {

@@ -6,20 +6,34 @@ import rerun.blueprint as rrb
 
 def initialize_viewer():
     rr.init("rerun_example_map_view", spawn=True)
-    rr.set_time("frame_nr", sequence=0)
+    rr.set_time("time", duration=0.0)
 
     # Create a map view to display the chart.
     blueprint = rrb.Blueprint(
-        rrb.MapView(
-            origin="map",
-            name="MapView",
-            zoom=16.0,
-            background=rrb.MapProvider.OpenStreetMap,
+        rrb.Horizontal(
+            rrb.MapView(
+                origin="map",
+                name="MapView",
+                zoom=16.0,
+                background=rrb.MapProvider.OpenStreetMap,
+            ),
+            rrb.TextDocumentView(
+                origin="logs",
+            ),
+            column_shares=[0.8, 0.2],
         ),
-        collapse_panels=True,
+        # collapse_panels=True,
     )
 
     rr.send_blueprint(blueprint)
+
+
+# def log_text(text: str):
+#     rr.log(
+#         "logs",
+#         rr.TextDocument(text=text),
+#         # media_type=rr.MediaType.MARKDOWN,
+#     )
 
 
 def log_points(
@@ -27,9 +41,9 @@ def log_points(
     boat_arr: npt.NDArray[np.float64],
     drone_arr: npt.NDArray[np.float64],
     uncertainty: npt.NDArray[np.float64],
-    frame_nr: int,
+    time: float,
 ):
-    rr.set_time("frame_nr", sequence=frame_nr)
+    rr.set_time("time", duration=time)
     # colours = np.ones((ll_arr.shape[0], 4), dtype=np.uint8) @ np.array(
     #     [255, 186, 186, 0.5], dtype=np.uint8
     # )
